@@ -15,7 +15,7 @@ jobs:
     steps:
       # Passo 1: Checkout do código
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4.6.2
 
       # Passo 2: Instalar o Snyk
       - name: Install Snyk
@@ -27,7 +27,7 @@ jobs:
 
       # Passo 4: Upload do Relatório do Snyk como artefato
       - name: Upload Snyk Report as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: snyk-report
           path: snyk-report.json
