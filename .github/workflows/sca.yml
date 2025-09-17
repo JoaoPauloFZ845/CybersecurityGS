@@ -27,7 +27,7 @@ jobs:
 
       # Passo 4: Upload do Relatório do Snyk como artefato
       - name: Upload Snyk Report as Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: snyk-report
           path: snyk-report.json
