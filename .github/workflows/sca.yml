@@ -10,7 +10,6 @@ jobs:
   snyk:
     runs-on: ubuntu-latest
     env:
-      # pega os secrets do repositório (configure em: Settings > Secrets and variables > Actions)
       SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -18,34 +17,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          python-version: '3.11'
 
-      # Instala dependências (usa ci se houver lockfile)
-      - name: Install deps
+      - name: Install dependencies
         run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
           fi
 
       - name: Install Snyk CLI
         run: npm install -g snyk
 
-      # Opcional: autenticar explicitamente (env SNYK_TOKEN já basta, mas deixa explícito)
-      - name: Snyk auth
+      - name: Authenticate Snyk
         run: snyk auth "${SNYK_TOKEN}"
 
-      # Executa o teste; continua mesmo se achar vulnerabilidades para gerar/armazenar o relatório
       - name: Run Snyk to check for vulnerabilities
         id: snyk
         continue-on-error: true
         run: |
-          # Gera JSON e SARIF para artefatos/integrações
           snyk test --all-projects \
             --json-file-output=snyk-report.json \
             --sarif-file-output=snyk-report.sarif
@@ -59,15 +52,13 @@ jobs:
             snyk-report.json
             snyk-report.sarif
 
-      # Notifica no Slack se o passo do Snyk falhou (vulns → exit code != 0)
       - name: Send Slack notification if vulnerabilities found
         if: steps.snyk.outcome == 'failure'
         run: |
           curl -X POST -H 'Content-type: application/json' \
-            --data '{"text":"⚠️ Vulnerabilidade crítica/alta detectada nas dependências (Snyk). Ver detalhes no artefato: snyk-report."}' \
+            --data '{"text":"⚠️ Vulnerabilidade crítica/alta detectada no projeto Python. Veja o artefato snyk-report."}' \
             "$SLACK_WEBHOOK_URL"
 
-      # Opcional: falhar o job no final se houve vulnerabilidades (remova se não quiser quebrar o PR)
       - name: Fail if Snyk found issues (re-fail)
         if: steps.snyk.outcome == 'failure'
         run: exit 1
